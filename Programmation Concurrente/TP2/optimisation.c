@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
@@ -7,109 +6,69 @@
 #include <errno.h>
 
 #define MAX_FACTORS 64
-#define MAX_STOCKAGE 100
-
-
-typedef struct stockage 
-{
-	uint64_t nombre;
-	uint64_t* facteurs;
-	int nbFacteurs;
-} stockage;
 
 pthread_mutex_t mutex_file = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_ecran = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_tableau = PTHREAD_MUTEX_INITIALIZER;
-stockage stock[MAX_STOCKAGE];
-int nbStockage = 0;
 
-
-int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors)
+int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors, uint64_t debut)
 {
 	uint64_t sq = sqrt(n)+1;
 	uint64_t i;
-	for ( i = 2; i < sq; i++ )
+	if (debut < 7)
+	{
+		while (n%2 == 0 && n!=0)
+		{
+			n = n/2;
+			dest[nbfactors++] = 2;
+		}
+		while (n%3 == 0 && n!=0)
+		{
+			n = n/3;
+			dest[nbfactors++] = 3;
+		}
+		
+		while (n%5 == 0 && n!=0)
+		{
+			n = n/5;
+			dest[nbfactors++] = 5;
+		}
+		debut = 7;
+	}
+	int increment = 2;
+	if ((debut+1)%3 == 0)
+	{
+		increment = 4;
+	}
+	
+	for ( i = debut; i < sq; i+=increment )
 	{
 		if (n%i == 0)
 		{
 			dest[nbfactors++] = i;
-			nbfactors = get_prime_factors((uint64_t)n/i,dest,nbfactors);
+			nbfactors = get_prime_factors((uint64_t)n/i,dest,nbfactors, i);
 			return nbfactors;
 		}
+		increment = increment%4 + 2;
 	}
 	dest[nbfactors++] = n;
 	return nbfactors;
 }
 
-stockage* find_factors(uint64_t n)
-{
-    int i;
-    for(i = 0; i < nbStockage; i++)
-    {
-        if(stock[i].nombre == n)
-        {
-            return &stock[i];
-        }
-    }
-    return NULL;
-}
-
-void free_stockage()
-{
-    int i;
-    for(i = 0; i < nbStockage; i++)
-    {
-        free(stock[i].facteurs);
-    }
-}
 
 void print_prime_factors(uint64_t n)
 {
-    stockage *s;
-    uint64_t *f;
+	uint64_t factors[MAX_FACTORS];
 	int j,k;
-
-    while(pthread_mutex_trylock(&mutex_tableau) == EBUSY);
-    s = find_factors(n);
-    if(s == NULL)
-    {
-        pthread_mutex_unlock(&mutex_tableau);
-        f = (uint64_t *) malloc(sizeof(uint64_t)*MAX_FACTORS);
-        if(f == NULL)
-        {
-            perror(NULL);
-            free_stockage();
-            exit(errno);
-        }
-
-        k = get_prime_factors(n,f,0);
-
-        if(nbStockage < MAX_STOCKAGE)
-        {
-			while(pthread_mutex_trylock(&mutex_tableau) == EBUSY);
-			
-			stock[nbStockage].facteurs = f;
-			stock[nbStockage].nombre = n;
-			stock[nbStockage].nbFacteurs = k;
-			nbStockage++;
-			pthread_mutex_unlock(&mutex_tableau);
-		}
-    }
-    else
-    {
-        k = s->nbFacteurs;
-        f = s->facteurs;
-        pthread_mutex_unlock(&mutex_tableau);
-    }
-
 	
+	k = get_prime_factors(n,factors,0, 2);
+		
 	while(pthread_mutex_trylock(&mutex_ecran) == EBUSY);
 
 	printf("%ju: ",n);
 	
 	for(j=0; j<k; j++)
 	{
-        printf("%ju ",f[j]);
+		printf("%ju ",factors[j]);
 	}
 	printf("\n");
 	
@@ -136,6 +95,8 @@ void* lecture_fichier(void * file)
 	
 	pthread_exit(NULL);
 }
+
+
 
 int main(int argc, char **argv)
 {
@@ -178,7 +139,6 @@ int main(int argc, char **argv)
 
 		fclose (fi);
 	 }
-    free_stockage();
 
     return 0;
 }

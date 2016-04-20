@@ -7,7 +7,7 @@
 #include <errno.h>
 
 #define MAX_FACTORS 64
-#define MAX_STOCKAGE 100
+#define MAX_STOCKAGE 1000
 
 
 typedef struct stockage 
@@ -24,23 +24,49 @@ stockage stock[MAX_STOCKAGE];
 int nbStockage = 0;
 
 
-int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors)
+int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors, uint64_t debut)
 {
 	uint64_t sq = sqrt(n)+1;
 	uint64_t i;
-	for ( i = 2; i < sq; i++ )
+	if (debut < 7)
+	{
+		while (n%2 == 0 && n!=0)
+		{
+			n = n/2;
+			dest[nbfactors++] = 2;
+		}
+		while (n%3 == 0 && n!=0)
+		{
+			n = n/3;
+			dest[nbfactors++] = 3;
+		}
+		
+		while (n%5 == 0 && n!=0)
+		{
+			n = n/5;
+			dest[nbfactors++] = 5;
+		}
+		debut = 7;
+	}
+	int increment = 2;
+	if ((debut+1)%3 == 0)
+	{
+		increment = 4;
+	}
+	
+	for ( i = debut; i < sq; i+=increment )
 	{
 		if (n%i == 0)
 		{
 			dest[nbfactors++] = i;
-			nbfactors = get_prime_factors((uint64_t)n/i,dest,nbfactors);
+			nbfactors = get_prime_factors((uint64_t)n/i,dest,nbfactors, i);
 			return nbfactors;
 		}
+		increment = increment%4 + 2;
 	}
 	dest[nbfactors++] = n;
 	return nbfactors;
 }
-
 stockage* find_factors(uint64_t n)
 {
     int i;
@@ -82,9 +108,8 @@ void print_prime_factors(uint64_t n)
             exit(errno);
         }
 
-        k = get_prime_factors(n,f,0);
-
-        if(nbStockage < MAX_STOCKAGE)
+        k = get_prime_factors(n,f,0, 2);
+		if(nbStockage < MAX_STOCKAGE)
         {
 			while(pthread_mutex_trylock(&mutex_tableau) == EBUSY);
 			

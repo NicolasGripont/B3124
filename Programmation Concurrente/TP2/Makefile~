@@ -80,7 +80,11 @@ run8: question8
 run10: question10
 	time ./question10
 
+optimisation_structure: optimisation_structure
+	time ./optimisation_structure
 
+optimisation: optimisation
+	time ./optimisation
 #########################
 ## utilities
 
