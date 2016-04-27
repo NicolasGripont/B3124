@@ -7,8 +7,8 @@
 #include <errno.h>
 
 #define MAX_FACTORS 64
-#define MAX_STOCKAGE 100
-
+#define MAX_STOCKAGE 1000
+#define NB_THREAD 4
 
 typedef struct stockage 
 {
@@ -24,18 +24,47 @@ stockage stock[MAX_STOCKAGE];
 int nbStockage = 0;
 
 
-int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors)
+
+int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors, uint64_t debut)
 {
+	
+	if (debut < 7)
+	{
+		while (n%2 == 0 && n!=0)
+		{
+			n = n/2;
+			dest[nbfactors++] = 2;
+		}
+		while (n%3 == 0 && n!=0)
+		{
+			n = n/3;
+			dest[nbfactors++] = 3;
+		}
+		
+		while (n%5 == 0 && n!=0)
+		{
+			n = n/5;
+			dest[nbfactors++] = 5;
+		}
+		debut = 7;
+	}
 	uint64_t sq = sqrt(n)+1;
 	uint64_t i;
-	for ( i = 2; i < sq; i++ )
+	int increment = 2;
+	if ((debut+1)%3 == 0)
+	{
+		increment = 4;
+	}
+	
+	for ( i = debut; i < sq; i+=increment )
 	{
 		if (n%i == 0)
 		{
 			dest[nbfactors++] = i;
-			nbfactors = get_prime_factors((uint64_t)n/i,dest,nbfactors);
+			nbfactors = get_prime_factors((uint64_t)n/i,dest,nbfactors, i);
 			return nbfactors;
 		}
+		increment = increment%4 + 2;
 	}
 	dest[nbfactors++] = n;
 	return nbfactors;
@@ -82,7 +111,7 @@ void print_prime_factors(uint64_t n)
             exit(errno);
         }
 
-        k = get_prime_factors(n,f,0);
+        k = get_prime_factors(n,f,0,0);
 
         if(nbStockage < MAX_STOCKAGE)
         {
@@ -109,15 +138,16 @@ void print_prime_factors(uint64_t n)
 	
 	for(j=0; j<k; j++)
 	{
+		if(f[j]>1)
         printf("%ju ",f[j]);
 	}
 	printf("\n");
 	
 	pthread_mutex_unlock(&mutex_ecran);
 }
-
 void* lecture_fichier(void * file)
 {
+
 	FILE *fi = (FILE *) file;
 	char line[128];
 	char *test;
@@ -137,11 +167,12 @@ void* lecture_fichier(void * file)
 	pthread_exit(NULL);
 }
 
+
 int main(int argc, char **argv)
 {
 	FILE *fi;
 	
-	pthread_t tid1, tid2;
+	pthread_t tid[NB_THREAD];
 	int crdu;
 	
 	if(argc < 2)
@@ -160,7 +191,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		crdu = pthread_create(&tid1, NULL, lecture_fichier,fi);
+		/*crdu = pthread_create(&tid1, NULL, lecture_fichier,fi);
 		if(crdu != 0)
 		{
 			perror(NULL);
@@ -172,13 +203,25 @@ int main(int argc, char **argv)
 		{
 			perror(NULL);
 			exit(errno);
+		}*/
+		int k;
+		for (k=0; k<NB_THREAD; k++)
+		{
+			crdu = pthread_create(&tid[k], NULL, lecture_fichier,fi);
+			if(crdu != 0)
+			{
+				perror(NULL);
+				exit(errno);
+			}
 		}
-		pthread_join(tid2,NULL);
-		pthread_join(tid1,NULL);
+		
+		for (k=0; k<NB_THREAD; k++)
+		{
+			pthread_join(tid[k],NULL);
+		}
 
 		fclose (fi);
 	 }
-    free_stockage();
-
     return 0;
 }
+

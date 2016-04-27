@@ -13,20 +13,20 @@ void print_prime_factors_recursive(uint64_t n)
 	{
 		if (n%i == 0)
 		{
-			//printf("%ju ",i);
+			printf("%ju ",i);
 			print_prime_factors_recursive((uint64_t)n/i);
 			return;
 		}
 	}
-	//printf("%ju ",n);
+	printf("%ju ",n);
 }
 
 void *print_prime_factors(void* n)
 {
 	uint64_t nb = (uint64_t)n;
-	//printf("%ju : ",nb);
+	printf("%ju : ",nb);
 	print_prime_factors_recursive(nb);
-	//printf("\n");
+	printf("\n");
 	pthread_exit(NULL);
 }
 

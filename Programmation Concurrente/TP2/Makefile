@@ -53,7 +53,10 @@ optimisation_structure: optimisation_structure.c
 	gcc -Wall -pthread -o optimisation_structure optimisation_structure.c -lm
 
 optimisation: optimisation.c
-	gcc -Wall -pthread -o optimisation optimisation.c -lm
+	gcc -Wall -O1 -pthread -o optimisation optimisation.c -lm
+
+optimisation_arbre: optimisation_arbre.c
+	gcc -Wall -O3 -pthread -o optimisation_arbre optimisation_arbre.c -lm
 # add your own rules when you create new programs
 
 #########################

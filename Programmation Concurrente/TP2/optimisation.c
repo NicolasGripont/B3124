@@ -6,14 +6,14 @@
 #include <errno.h>
 
 #define MAX_FACTORS 64
+#define NB_THREAD 4
 
 pthread_mutex_t mutex_file = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_ecran = PTHREAD_MUTEX_INITIALIZER;
 
 int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors, uint64_t debut)
 {
-	uint64_t sq = sqrt(n)+1;
-	uint64_t i;
+	
 	if (debut < 7)
 	{
 		while (n%2 == 0 && n!=0)
@@ -34,6 +34,8 @@ int get_prime_factors(uint64_t n, uint64_t* dest, int nbfactors, uint64_t debut)
 		}
 		debut = 7;
 	}
+	uint64_t sq = sqrt(n)+1;
+	uint64_t i;
 	int increment = 2;
 	if ((debut+1)%3 == 0)
 	{
@@ -68,6 +70,7 @@ void print_prime_factors(uint64_t n)
 	
 	for(j=0; j<k; j++)
 	{
+		if(factors[j]<2)
 		printf("%ju ",factors[j]);
 	}
 	printf("\n");
@@ -102,7 +105,7 @@ int main(int argc, char **argv)
 {
 	FILE *fi;
 	
-	pthread_t tid1, tid2;
+	pthread_t tid[NB_THREAD];
 	int crdu;
 	
 	if(argc < 2)
@@ -121,7 +124,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		crdu = pthread_create(&tid1, NULL, lecture_fichier,fi);
+		/*crdu = pthread_create(&tid1, NULL, lecture_fichier,fi);
 		if(crdu != 0)
 		{
 			perror(NULL);
@@ -133,9 +136,22 @@ int main(int argc, char **argv)
 		{
 			perror(NULL);
 			exit(errno);
+		}*/
+		int k;
+		for (k=0; k<NB_THREAD; k++)
+		{
+			crdu = pthread_create(&tid[k], NULL, lecture_fichier,fi);
+			if(crdu != 0)
+			{
+				perror(NULL);
+				exit(errno);
+			}
 		}
-		pthread_join(tid2,NULL);
-		pthread_join(tid1,NULL);
+		
+		for (k=0; k<NB_THREAD; k++)
+		{
+			pthread_join(tid[k],NULL);
+		}
 
 		fclose (fi);
 	 }
